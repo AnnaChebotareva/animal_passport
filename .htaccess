@@ -1,0 +1,20 @@
+# Включить mod_rewrite
+RewriteEngine On
+
+# Если файл или папка существуют, использовать их напрямую
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+
+# Все остальные запросы перенаправлять на index.php
+RewriteRule ^(.*)$ index.php?page=$1 [QSA,L]
+
+# Защита от доступа к служебным файлам
+<FilesMatch "^\.">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+<FilesMatch "\.(sql|log|ini)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>

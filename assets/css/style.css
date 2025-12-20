@@ -1,0 +1,156 @@
+/* 
+ * Основные стили для прототипа системы поиска животных
+ */
+
+/* Общие стили */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f8f9fa;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+main {
+    flex: 1;
+}
+
+/* Стили для карточек */
+.card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+}
+
+/* Стили для навигации */
+.navbar-brand {
+    font-weight: 600;
+    font-size: 1.5rem;
+}
+
+.navbar-brand i {
+    color: #0d6efd;
+}
+
+/* Стили для форм */
+.form-control:focus {
+    border-color: #80bdff;
+    box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+}
+
+.form-label {
+    font-weight: 500;
+    color: #495057;
+}
+
+/* Стили для кнопок */
+.btn {
+    border-radius: 6px;
+    padding: 0.5rem 1.5rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.btn-lg {
+    padding: 0.75rem 2rem;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #0d6efd, #0b5ed7);
+    border: none;
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, #0b5ed7, #0a58ca);
+    transform: scale(1.05);
+}
+
+.btn-success {
+    background: linear-gradient(135deg, #198754, #157347);
+    border: none;
+}
+
+.btn-success:hover {
+    background: linear-gradient(135deg, #157347, #146c43);
+    transform: scale(1.05);
+}
+
+/* Стили для предпросмотра изображений */
+.img-thumbnail {
+    border: 2px dashed #dee2e6;
+    padding: 5px;
+    background-color: #f8f9fa;
+}
+
+#previewContainer {
+    transition: all 0.3s ease;
+}
+
+/* Стили для результатов поиска */
+.search-result-card {
+    border-left: 4px solid #0d6efd;
+}
+
+.similarity-high {
+    color: #198754;
+}
+
+.similarity-medium {
+    color: #fd7e14;
+}
+
+.similarity-low {
+    color: #dc3545;
+}
+
+/* Анимация загрузки */
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+}
+
+.loading-pulse {
+    animation: pulse 1.5s infinite;
+}
+
+/* Адаптивные стили */
+@media (max-width: 768px) {
+    .display-4 {
+        font-size: 2.5rem;
+    }
+    
+    .card-body {
+        padding: 1rem;
+    }
+}
+
+/* Стили для футера */
+footer {
+    margin-top: auto;
+}
+
+footer a:hover {
+    color: white !important;
+    text-decoration: underline !important;
+}
+
+/* Кастомные стили для баджей */
+.badge {
+    padding: 0.5em 0.8em;
+    font-weight: 500;
+}
+
+/* Утилитарные классы */
+.rounded-10 {
+    border-radius: 10px !important;
+}
+
+.shadow-soft {
+    box-shadow: 0 5px 15px rgba(0,0,0,0.08) !important;
+}

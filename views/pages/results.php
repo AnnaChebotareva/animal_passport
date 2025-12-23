@@ -4,7 +4,9 @@
 // Получаем ID животного из GET-параметра
 $animal_id = isset($_GET['animal_id']) ? intval($_GET['animal_id']) : 0;
 
-require_once '../config/database.php';
+// Используем абсолютный путь к config/database.php
+$base_dir = dirname(__DIR__, 2); // Поднимаемся на 2 уровня вверх от views/pages/
+require_once $base_dir . '/config/database.php';
 
 $database = new Database();
 $db = $database->getConnection();
@@ -29,6 +31,18 @@ if ($animal_id > 0) {
         // В случае ошибки просто продолжаем без данных животного
     }
 }
+
+session_start();
+
+// Проверяем, было ли перенаправление после успешной регистрации
+$is_success = isset($_GET['animal_id']) && intval($_GET['animal_id']) > 0;
+
+if (!$is_success) {
+    // Если кто-то пытается зайти напрямую без регистрации
+    header("Location: " . $base_url . "/views/pages/register_form.php");
+    exit();
+}
+
 ?>
 
 <!DOCTYPE html>
@@ -38,10 +52,15 @@ if ($animal_id > 0) {
     <title>Регистрация успешна - Система поиска животных</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
+    <!-- Подключаем CSS вашего проекта -->
+    <link href="<?php echo $base_url; ?>/assets/css/style.css" rel="stylesheet">
 </head>
 <body>
     <!-- Шапка -->
-    <?php include 'header.php'; ?>
+    <?php 
+    // Исправляем путь к header.php
+    include $base_dir . '/views/layouts/header.php'; 
+    ?>
     
     <main class="container my-5">
         <div class="row justify-content-center">
@@ -105,10 +124,10 @@ if ($animal_id > 0) {
                         
                         <!-- Кнопки действий -->
                         <div class="d-flex justify-content-between mt-4">
-                            <a href="register_form.php" class="btn btn-outline-primary">
+                            <a href="<?php echo $base_url; ?>?page=register" class="btn btn-outline-primary">
                                 <i class="bi bi-plus-circle"></i> Зарегистрировать еще одного
                             </a>
-                            <a href="../index.php" class="btn btn-primary">
+                            <a href="<?php echo $base_url; ?>/index.php" class="btn btn-primary">
                                 <i class="bi bi-house-door"></i> На главную страницу
                             </a>
                         </div>
@@ -119,8 +138,13 @@ if ($animal_id > 0) {
     </main>
     
     <!-- Подвал -->
-    <?php include 'footer.php'; ?>
+    <?php 
+    // Исправляем путь к footer.php
+    include $base_dir . '/views/layouts/footer.php'; 
+    ?>
     
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Подключаем JS вашего проекта -->
+    <script src="<?php echo $base_url; ?>/assets/js/main.js"></script>
 </body>
 </html>

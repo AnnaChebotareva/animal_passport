@@ -131,12 +131,20 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $db->commit();
         
         // 7. ПЕРЕНАПРАВЛЕНИЕ НА СТРАНИЦУ УСПЕХА
-        header('Location: ../views/success.php?animal_id=' . $animal_id);
+        session_start();
+        $_SESSION['registration_success'] = true;
+        $_SESSION['registered_animal_id'] = $animal_id;
+
+        header('Location: ../views/pages/results.php?animal_id=' . $animal_id);
         exit();
         
     } catch (Exception $e) {
         // Откатываем транзакцию при ошибке
         $db->rollBack();
+         // Обработка ошибки
+        error_log("Registration error: " . $e->getMessage());
+        header("Location: ../views/pages/register_form.php?error=1");
+        exit();
         
         // Удаляем загруженный файл, если он был сохранен
         if (file_exists($upload_path)) {

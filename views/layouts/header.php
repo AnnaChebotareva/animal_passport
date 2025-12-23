@@ -6,7 +6,7 @@
 
 // Определяем базовый путь
 $base_path = dirname(dirname(__DIR__)); // Поднимаемся на два уровня вверх от views/layouts
-$base_url = '/animal_passport/';
+$base_url = '/animal_passport';
 
 // Если проект в подпапке, нужно изменить
 // $base_url = '/your-project/';
@@ -54,7 +54,7 @@ $page_title = isset($page_title) ? $page_title . ' - AnimalPassport' : 'AnimalPa
                     </li>
                     <li class="nav-item">
                         <a class="nav-link <?php echo isset($_GET['page']) && $_GET['page'] == 'register' ? 'active' : ''; ?>" 
-                           href="<?php echo $base_url; ?>/animal_passport/?page=register">
+                           href="<?php echo $base_url; ?>?page=register">
                             <i class="bi bi-person-plus"></i> Регистрация
                         </a>
                     </li>

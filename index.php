@@ -3,7 +3,7 @@
  * Единая точка входа (Front Controller)
  * Обрабатывает все запросы через GET-параметр ?page=
  */
-$base_url = '/animal_passport/';
+$base_url = '/animal_passport';
 session_start();
 
 // Определяем базовый путь для include
@@ -24,8 +24,11 @@ if ($require_db) {
 $allowed_pages = [
     'home' => 'pages/home.php',
     'register' => 'pages/register_form.php',
-    'search' => 'pages/search_form.php',
-    'results' => 'pages/results.php'
+    'search' => 'pages/search.php',
+    'search_photo' => 'pages/search_photo_form.php',
+    'search_chip' => 'pages/search_chip_form.php',   
+    'search_results' => 'pages/search_results.php',   
+    'results' => 'pages/results.php'   
 ];
 
 // Получаем путь к файлу шаблона
@@ -41,6 +44,9 @@ $page_titles = [
     'home' => 'Главная',
     'register' => 'Регистрация животного',
     'search' => 'Поиск животного',
+    'search_photo' => 'Поиск по фотографии',          
+    'search_chip' => 'Поиск по номеру чипа',       
+    'search_results' => 'Результаты поиска',
     'results' => 'Результаты'
 ];
 
@@ -54,3 +60,4 @@ require_once VIEWS_PATH . '/' . $template_file;
 
 // Подключаем footer
 require_once VIEWS_PATH . '/layouts/footer.php';
+

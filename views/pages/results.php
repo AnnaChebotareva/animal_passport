@@ -32,8 +32,6 @@ if ($animal_id > 0) {
     }
 }
 
-session_start();
-
 // Проверяем, было ли перенаправление после успешной регистрации
 $is_success = isset($_GET['animal_id']) && intval($_GET['animal_id']) > 0;
 

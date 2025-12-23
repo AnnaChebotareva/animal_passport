@@ -58,7 +58,17 @@ $page_scripts = ['register.js'];
                             
                             <div class="col-md-4">
                                 <label for="breed" class="form-label">Порода</label>
-                                <input type="text" class="form-control" id="breed" name="breed">
+                                <input type="text" class="form-control" id="breed" name="breed" required>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label for="color" class="form-label">Окрас</label>
+                                <input type="text" class="form-control" id="color" name="color" required>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label for="birth_date" class="form-label">Дата рождения</label>
+                                <input type="date" class="form-control" id="birth_date" name="birth_date">
                             </div>
                             
                             <div class="col-md-4">
@@ -68,6 +78,11 @@ $page_scripts = ['register.js'];
                                     <option value="male">Мужской</option>
                                     <option value="female">Женский</option>
                                 </select>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label for="special_marks" class="form-label">Особенности</label>
+                                <input type="text" class="form-control" id="special_marks" name="special_marks">
                             </div>
                         </div>
                     </div>
@@ -118,18 +133,19 @@ $page_scripts = ['register.js'];
                                 </label>
                                 <input type="text" class="form-control" id="owner_name" name="owner_name" required>
                             </div>
-                            
+
                             <div class="col-md-6">
                                 <label for="owner_phone" class="form-label">
                                     Телефон <span class="text-danger">*</span>
                                 </label>
-                                <input type="tel" class="form-control" id="owner_phone" name="owner_phone" 
-                                       placeholder="+7 (999) 123-45-67" required>
+                                <input type="text" class="form-control" id="owner_phone" name="owner_phone" 
+                                       placeholder="+7 (999) 123-45-67" pattern="\d{11}" required>
+                                <div class="invalid-feedback">Введите 11-значный номер телефона</div>       
                             </div>
                             
                             <div class="col-md-12">
-                                <label for="owner_email" class="form-label">Email</label>
-                                <input type="email" class="form-control" id="owner_email" name="owner_email">
+                                <label for="owner_email" class="form-label">Email<span class="text-danger">*</span></label>
+                                <input type="email" class="form-control" id="owner_email" name="owner_email" required>
                             </div>
                         </div>
                     </div>

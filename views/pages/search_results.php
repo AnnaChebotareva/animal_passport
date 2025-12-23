@@ -120,17 +120,16 @@ unset($_SESSION['search_error']);
                                     Сообщите, где и когда вы его обнаружили.
                                 </p>
                             </div>
-                            <div class="card-footer text-center">
-                                <a href="<?php echo $base_url; ?>?page=search" class="btn btn-outline-secondary me-2">
-                                    <i class="bi bi-search"></i> Новый поиск
-                                </a>
-                                <a href="<?php echo $base_url; ?>?page=home" class="btn btn-primary">
-                                    <i class="bi bi-house-door"></i> На главную
-                                </a>
-                            </div>
                         </div>
                     <?php endforeach; ?>
-                    
+                <div class="card-footer text-center">
+                    <a href="<?php echo $base_url; ?>?page=search" class="btn btn-outline-secondary me-2">
+                        <i class="bi bi-search"></i> Новый поиск
+                    </a>
+                    <a href="<?php echo $base_url; ?>?page=home" class="btn btn-primary">
+                        <i class="bi bi-house-door"></i> На главную
+                    </a>
+                </div>    
                 <?php else: ?>
                     <!-- Результаты поиска по чипу -->
                     <?php foreach ($results as $animal): ?>

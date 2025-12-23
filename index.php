@@ -3,7 +3,7 @@
  * Единая точка входа (Front Controller)
  * Обрабатывает все запросы через GET-параметр ?page=
  */
-
+$base_url = '/animal_passport/';
 session_start();
 
 // Определяем базовый путь для include

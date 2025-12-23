@@ -5,7 +5,7 @@
 
 // Определяем базовый путь
 $base_path = dirname(dirname(__DIR__));
-$base_url = '/';
+$base_url = '/animal_passport/';
 ?>
     </main> <!-- Закрываем main из header.php -->
 
@@ -18,7 +18,7 @@ $base_url = '/';
                         <i class="bi bi-search-heart"></i> AnimalPassport
                     </h5>
                     <p class="small mb-0">
-                        Курсовой проект. Система поиска животных по цифровому паспорту.
+                        Система поиска животных по цифровому паспорту
                     </p>
                 </div>
                 
@@ -46,9 +46,9 @@ $base_url = '/';
                 <div class="col-md-3">
                     <h5 class="mb-3">Технологии</h5>
                     <div class="d-flex flex-wrap gap-2">
-                        <span class="badge bg-primary">PHP</span>
+                        <span class="badge bg-danger">PHP</span>
                         <span class="badge bg-success">MySQL</span>
-                        <span class="badge bg-info">Bootstrap</span>
+                        <span class="badge bg-primary">Bootstrap</span>
                     </div>
                 </div>
             </div>
@@ -57,13 +57,13 @@ $base_url = '/';
             <div class="row">
                 <div class="col-md-6">
                     <p class="small mb-0">
-                        &copy; <?php echo date('Y'); ?> Курсовая работа
+                        &copy; <?php echo date('Y'); ?> Научно-исследовательская работа
                     </p>
                 </div>
                 <div class="col-md-6 text-end">
                     <p class="small mb-0">
                         <i class="bi bi-github"></i> 
-                        <a href="https://github.com" class="text-white-50 text-decoration-none">
+                        <a href="https://github.com/AnnaChebotareva/animal_passport" class="text-white-50 text-decoration-none">
                             Исходный код
                         </a>
                     </p>

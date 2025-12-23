@@ -1,7 +1,5 @@
-<?php require_once 'header.php'; ?>
-
 <div class="container mt-5">
-    <h1 class="text-center mb-4">🔍 Поиск животного по фотографии</h1>
+    <h1 class="text-center mb-4"><i class="bi bi-search"></i> Поиск животного по фотографии</h1>
     
     <div class="row justify-content-center">
         <div class="col-md-8">
@@ -43,11 +41,6 @@
                     </form>
                 </div>
             </div>
-            
-            <!-- Блок для результатов (будет заполнен через AJAX) -->
-            <div id="searchResults" class="mt-4"></div>
         </div>
     </div>
 </div>
-
-<?php require_once 'footer.php'; ?>

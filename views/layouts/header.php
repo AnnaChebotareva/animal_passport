@@ -6,7 +6,7 @@
 
 // Определяем базовый путь
 $base_path = dirname(dirname(__DIR__)); // Поднимаемся на два уровня вверх от views/layouts
-$base_url = '/'; // Для локального сервера
+$base_url = '/animal_passport/';
 
 // Если проект в подпапке, нужно изменить
 // $base_url = '/your-project/';
@@ -65,10 +65,6 @@ $page_title = isset($page_title) ? $page_title . ' - AnimalPassport' : 'AnimalPa
                         </a>
                     </li>
                 </ul>
-                
-                <div class="navbar-text">
-                    <small class="text-light">Прототип системы</small>
-                </div>
             </div>
         </div>
     </nav>

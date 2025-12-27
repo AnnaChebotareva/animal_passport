@@ -67,27 +67,62 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // 2. ПОДКЛЮЧЕНИЕ К БАЗЕ ДАННЫХ
     $database = new Database();
     $db = $database->getConnection();
-    
+
     // 3. ПОДГОТОВКА ДАННЫХ ДЛЯ ВСТАВКИ
-    
-    // Сначала создаем запись владельца
-    $owner_sql = "INSERT INTO owners (full_name, phone, email, is_verified) 
-                  VALUES (:full_name, :phone, :email, 1)";
-    
-    $owner_data = [
-        ':full_name' => htmlspecialchars(strip_tags($_POST['owner_name'])),
-        ':phone' => htmlspecialchars(strip_tags($_POST['owner_phone'])),
-        ':email' => htmlspecialchars(strip_tags($_POST['owner_email']))
+
+    // Сначала проверяем существование владельца
+    $owner_sql = "SELECT id FROM owners WHERE email = :email OR phone = :phone LIMIT 1";
+    $owner_check_data = [
+        ':email' => htmlspecialchars(strip_tags($_POST['owner_email'])),
+        ':phone' => htmlspecialchars(strip_tags($_POST['owner_phone']))
     ];
-    
+
     try {
         // Начинаем транзакцию
         $db->beginTransaction();
-        
-        // Вставляем владельца
+
+        // Проверяем существование владельца
         $stmt = $db->prepare($owner_sql);
-        $stmt->execute($owner_data);
-        $owner_id = $db->lastInsertId();
+        $stmt->execute($owner_check_data);
+
+        if ($stmt->rowCount() > 0) {
+            // Владелец существует - используем существующий ID
+            $owner = $stmt->fetch(PDO::FETCH_ASSOC);
+            $owner_id = $owner['id'];
+
+            // Обновляем информацию владельца (на случай если изменились данные)
+            $update_owner_sql = "UPDATE owners SET 
+                            full_name = :full_name, 
+                            phone = :phone,
+                            email = :email,
+                            is_verified = 1
+                            WHERE id = :id";
+
+            $update_data = [
+                ':full_name' => htmlspecialchars(strip_tags($_POST['owner_name'])),
+                ':phone' => htmlspecialchars(strip_tags($_POST['owner_phone'])),
+                ':email' => htmlspecialchars(strip_tags($_POST['owner_email'])),
+                ':id' => $owner_id
+            ];
+
+            $stmt = $db->prepare($update_owner_sql);
+            $stmt->execute($update_data);
+
+        } else {
+            // Владельца нет - создаем нового
+            $owner_sql = "INSERT INTO owners (full_name, phone, email, is_verified) 
+                      VALUES (:full_name, :phone, :email, 1)";
+
+            $owner_data = [
+                ':full_name' => htmlspecialchars(strip_tags($_POST['owner_name'])),
+                ':phone' => htmlspecialchars(strip_tags($_POST['owner_phone'])),
+                ':email' => htmlspecialchars(strip_tags($_POST['owner_email']))
+            ];
+
+            $stmt = $db->prepare($owner_sql);
+            $stmt->execute($owner_data);
+            $owner_id = $db->lastInsertId();
+        }
         
         // 4. СОЗДАНИЕ ЗАПИСИ ЖИВОТНОГО
         $animal_sql = "INSERT INTO animals 
@@ -257,5 +292,49 @@ function deleteDirectory($dir) {
     }
     
     return rmdir($dir);
+}
+
+/**
+ * Проверяет корректность email адреса
+ */
+function validateEmail($email) {
+    // 1. Базовая проверка PHP
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        return false;
+    }
+    
+    // 2. Проверяем наличие @
+    if (strpos($email, '@') === false) {
+        return false;
+    }
+    
+    // 3. Разделяем на части
+    list($local, $domain) = explode('@', $email, 2);
+    
+    // 4. Проверяем длину частей
+    if (strlen($local) < 1 || strlen($domain) < 3) {
+        return false;
+    }
+    
+    // 5. Проверяем наличие точки в домене
+    if (strpos($domain, '.') === false) {
+        return false;
+    }
+    
+    // 6. Проверяем домен верхнего уровня
+    $domainParts = explode('.', $domain);
+    $tld = end($domainParts);
+    
+    // Должен быть хотя бы 2 символа
+    if (strlen($tld) < 2) {
+        return false;
+    }
+    
+    // 7. Дополнительная проверка на русские буквы (если нужно их запретить)
+    if (preg_match('/[а-яА-Я]/u', $email)) {
+        return false;
+    }
+    
+    return true;
 }
 ?>

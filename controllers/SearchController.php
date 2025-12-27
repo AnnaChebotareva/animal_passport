@@ -108,7 +108,7 @@ function searchByPhoto() {
                         ap.photo_path, ap.embedding_data, ap.is_primary
                 FROM animals a 
                 JOIN owners o ON a.owner_id = o.id 
-                LEFT JOIN animal_photos ap ON a.id = ap.animal_id AND ap.is_primary = 1
+                LEFT JOIN animal_photos ap ON a.id = ap.animal_id
                 WHERE a.status = 'active'
                 ORDER BY a.id, ap.is_primary DESC";
         

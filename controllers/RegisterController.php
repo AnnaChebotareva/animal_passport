@@ -3,7 +3,7 @@
 require_once '../config/database.php';
 require_once 'ImageController.php';
 
-// Включаем вывод ошибок для отладки (на время разработки)
+// Включаем вывод ошибок для отладки
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
 
@@ -26,21 +26,36 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $errors[] = "Номер чипа должен содержать ровно 15 цифр";
     }
     
-    // Проверяем загруженное фото
-    if (!isset($_FILES['photo']) || $_FILES['photo']['error'] != UPLOAD_ERR_OK) {
-        $errors[] = "Необходимо загрузить фотографию животного";
+    // Проверяем основное фото
+    if (!isset($_FILES['main_photo']) || $_FILES['main_photo']['error'] != UPLOAD_ERR_OK) {
+        $errors[] = "Необходимо загрузить основное фотографию животного";
     } else {
         // Проверяем тип файла
         $allowed_types = ['image/jpeg', 'image/png', 'image/jpg'];
-        $file_type = $_FILES['photo']['type'];
+        $file_type = $_FILES['main_photo']['type'];
         if (!in_array($file_type, $allowed_types)) {
             $errors[] = "Допустимы только файлы JPG и PNG";
         }
         
         // Проверяем размер файла (максимум 5MB)
-        $max_size = 5 * 1024 * 1024; // 5MB в байтах
-        if ($_FILES['photo']['size'] > $max_size) {
-            $errors[] = "Размер файла не должен превышать 5MB";
+        $max_size = 5 * 1024 * 1024;
+        if ($_FILES['main_photo']['size'] > $max_size) {
+            $errors[] = "Размер основного файла не должен превышать 5MB";
+        }
+    }
+    
+    // Проверяем дополнительные фото
+    if (isset($_FILES['additional_photos'])) {
+        foreach ($_FILES['additional_photos']['error'] as $key => $error) {
+            if ($error == UPLOAD_ERR_OK) {
+                $file_type = $_FILES['additional_photos']['type'][$key];
+                if (!in_array($file_type, $allowed_types)) {
+                    $errors[] = "Дополнительное фото #" . ($key + 1) . " должно быть JPG или PNG";
+                }
+                if ($_FILES['additional_photos']['size'][$key] > $max_size) {
+                    $errors[] = "Размер дополнительного фото #" . ($key + 1) . " не должен превышать 5MB";
+                }
+            }
         }
     }
     
@@ -66,37 +81,19 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     ];
     
     try {
-        // Начинаем транзакцию (чтобы либо все сохранится, либо ничего)
+        // Начинаем транзакцию
         $db->beginTransaction();
         
         // Вставляем владельца
         $stmt = $db->prepare($owner_sql);
         $stmt->execute($owner_data);
-        $owner_id = $db->lastInsertId(); // Получаем ID нового владельца
+        $owner_id = $db->lastInsertId();
         
-        // 4. СОХРАНЕНИЕ ФОТОГРАФИИ И ГЕНЕРАЦИЯ ВЕКТОРА ПРИЗНАКОВ
-        
-        // Создаем уникальное имя файла
-        $file_extension = pathinfo($_FILES['photo']['name'], PATHINFO_EXTENSION);
-        $new_filename = 'animal_' . $_POST['chip_id'] . '_' . time() . '.' . $file_extension;
-        $upload_path = '../assets/uploads/' . $new_filename;
-        
-        // Перемещаем загруженный файл в папку uploads
-        if (!move_uploaded_file($_FILES['photo']['tmp_name'], $upload_path)) {
-            throw new Exception("Ошибка при сохранении файла");
-        }
-        
-        // Создаем экземпляр процессора изображений
-        $image_processor = new ImageProcessor();
-        
-        // Обрабатываем изображение и получаем вектор признаков
-        $embedding_data = $image_processor->processImage($upload_path);
-        
-        // 5. СОЗДАНИЕ ЗАПИСИ ЖИВОТНОГО
+        // 4. СОЗДАНИЕ ЗАПИСИ ЖИВОТНОГО
         $animal_sql = "INSERT INTO animals 
-                      (chip_id, owner_id, name, species, breed, color, gender, status) 
+                      (chip_id, owner_id, name, species, breed, color, gender, birth_date, special_marks, status) 
                       VALUES 
-                      (:chip_id, :owner_id, :name, :species, :breed, :color, :gender, 'active')";
+                      (:chip_id, :owner_id, :name, :species, :breed, :color, :gender, :birth_date, :special_marks, 'active')";
         
         $animal_data = [
             ':chip_id' => htmlspecialchars(strip_tags($_POST['chip_id'])),
@@ -105,27 +102,62 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             ':species' => htmlspecialchars(strip_tags($_POST['species'])),
             ':breed' => !empty($_POST['breed']) ? htmlspecialchars(strip_tags($_POST['breed'])) : null,
             ':color' => !empty($_POST['color']) ? htmlspecialchars(strip_tags($_POST['color'])) : null,
-            ':gender' => htmlspecialchars(strip_tags($_POST['gender']))
+            ':gender' => htmlspecialchars(strip_tags($_POST['gender'])),
+            ':birth_date' => !empty($_POST['birth_date']) ? $_POST['birth_date'] : null,
+            ':special_marks' => !empty($_POST['special_marks']) ? htmlspecialchars(strip_tags($_POST['special_marks'])) : null
         ];
         
         $stmt = $db->prepare($animal_sql);
         $stmt->execute($animal_data);
         $animal_id = $db->lastInsertId();
         
-        // 6. СОХРАНЕНИЕ ФОТОГРАФИИ В БАЗЕ ДАННЫХ
-        $photo_sql = "INSERT INTO animal_photos 
-                     (animal_id, photo_path, is_primary, embedding_type, embedding_data) 
-                     VALUES 
-                     (:animal_id, :photo_path, 1, 'color_histogram', :embedding_data)";
+        // 5. СОХРАНЕНИЕ ФОТОГРАФИЙ
+        $image_processor = new ImageProcessor();
         
-        $photo_data = [
-            ':animal_id' => $animal_id,
-            ':photo_path' => '/assets/uploads/' . $new_filename, // Сохраняем относительный путь
-            ':embedding_data' => json_encode($embedding_data) // Сериализуем массив в JSON
-        ];
+        // Создаем директорию для загрузок если ее нет
+        $upload_dir = '../assets/uploads/' . $animal_id . '/';
+        if (!file_exists($upload_dir)) {
+            mkdir($upload_dir, 0777, true);
+        }
         
-        $stmt = $db->prepare($photo_sql);
-        $stmt->execute($photo_data);
+        // Обработка основного фото
+        $main_photo_data = processAndSavePhoto(
+            $_FILES['main_photo'], 
+            $animal_id, 
+            $upload_dir, 
+            $image_processor, 
+            $db, 
+            true
+        );
+        
+        // Обработка дополнительных фото
+        $additional_photos_data = [];
+        if (isset($_FILES['additional_photos'])) {
+            foreach ($_FILES['additional_photos']['name'] as $key => $name) {
+                if ($_FILES['additional_photos']['error'][$key] == UPLOAD_ERR_OK) {
+                    $file_data = [
+                        'name' => $_FILES['additional_photos']['name'][$key],
+                        'type' => $_FILES['additional_photos']['type'][$key],
+                        'tmp_name' => $_FILES['additional_photos']['tmp_name'][$key],
+                        'error' => $_FILES['additional_photos']['error'][$key],
+                        'size' => $_FILES['additional_photos']['size'][$key]
+                    ];
+                    
+                    $photo_data = processAndSavePhoto(
+                        $file_data, 
+                        $animal_id, 
+                        $upload_dir, 
+                        $image_processor, 
+                        $db, 
+                        false
+                    );
+                    
+                    if ($photo_data) {
+                        $additional_photos_data[] = $photo_data;
+                    }
+                }
+            }
+        }
         
         // Подтверждаем транзакцию
         $db->commit();
@@ -134,28 +166,96 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         session_start();
         $_SESSION['registration_success'] = true;
         $_SESSION['registered_animal_id'] = $animal_id;
+        $_SESSION['total_photos'] = 1 + count($additional_photos_data); // основное + дополнительные
 
         header('Location: ../views/pages/results.php?animal_id=' . $animal_id);
         exit();
         
     } catch (Exception $e) {
         // Откатываем транзакцию при ошибке
-        $db->rollBack();
-         // Обработка ошибки
-        error_log("Registration error: " . $e->getMessage());
-        header("Location: ../views/pages/register_form.php?error=1");
-        exit();
-        
-        // Удаляем загруженный файл, если он был сохранен
-        if (file_exists($upload_path)) {
-            unlink($upload_path);
+        if ($db->inTransaction()) {
+            $db->rollBack();
         }
         
-        die("Ошибка при регистрации: " . $e->getMessage());
+        // Удаляем загруженные файлы если они были сохранены
+        if (isset($upload_dir) && file_exists($upload_dir)) {
+            deleteDirectory($upload_dir); // Убрано $this->
+        }
+        
+        error_log("Registration error: " . $e->getMessage());
+        header("Location: ../views/pages/register_form.php?error=" . urlencode($e->getMessage()));
+        exit();
     }
 } else {
     // Если кто-то попытался обратиться к файлу напрямую
     header('Location: ../views/register_form.php');
     exit();
+}
+
+/**
+ * Обрабатывает и сохраняет фотографию
+ */
+function processAndSavePhoto($file_data, $animal_id, $upload_dir, $image_processor, $db, $is_primary = true) {
+    // Создаем уникальное имя файла
+    $file_extension = pathinfo($file_data['name'], PATHINFO_EXTENSION);
+    $new_filename = 'photo_' . time() . '_' . uniqid() . '.' . $file_extension;
+    $upload_path = $upload_dir . $new_filename;
+    
+    // Перемещаем файл
+    if (!move_uploaded_file($file_data['tmp_name'], $upload_path)) {
+        throw new Exception("Ошибка при сохранении файла: " . $file_data['name']);
+    }
+    
+    // Обрабатываем изображение и получаем вектор признаков
+    $embedding_data = $image_processor->processImage($upload_path);
+    
+    // Сохраняем информацию о фото в БД
+    $photo_sql = "INSERT INTO animal_photos 
+                 (animal_id, photo_path, is_primary, embedding_type, embedding_data) 
+                 VALUES 
+                 (:animal_id, :photo_path, :is_primary, 'color_histogram', :embedding_data)";
+    
+    $relative_path = '/assets/uploads/' . $animal_id . '/' . $new_filename;
+    
+    $photo_data = [
+        ':animal_id' => $animal_id,
+        ':photo_path' => $relative_path,
+        ':is_primary' => $is_primary ? 1 : 0,
+        ':embedding_data' => json_encode($embedding_data)
+    ];
+    
+    $stmt = $db->prepare($photo_sql);
+    $stmt->execute($photo_data);
+    
+    return [
+        'path' => $relative_path,
+        'is_primary' => $is_primary,
+        'photo_id' => $db->lastInsertId()
+    ];
+}
+
+/**
+ * Рекурсивно удаляет директорию
+ */
+function deleteDirectory($dir) {
+    if (!file_exists($dir)) {
+        return true;
+    }
+    
+    if (!is_dir($dir)) {
+        return unlink($dir);
+    }
+    
+    foreach (scandir($dir) as $item) {
+        if ($item == '.' || $item == '..') {
+            continue;
+        }
+        
+        if (!deleteDirectory($dir . DIRECTORY_SEPARATOR . $item)) {
+            return false;
+        }
+    }
+    
+    return rmdir($dir);
 }
 ?>

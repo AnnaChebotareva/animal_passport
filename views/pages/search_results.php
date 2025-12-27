@@ -1,16 +1,18 @@
 <?php
-// Определяем базовый URL для корректных ссылок
 $base_url = '/animal_passport';
+require_once './controllers/HistogramGenerator.php';
 
 // Получаем данные из сессии
 $results = $_SESSION['search_results'] ?? [];
 $search_type = $_SESSION['search_type'] ?? 'photo';
 $error_message = $_SESSION['search_error'] ?? null;
+$search_histogram = $_SESSION['search_histogram'] ?? null;
 
 // Очищаем данные сессии после использования
 unset($_SESSION['search_results']);
 unset($_SESSION['search_type']);
 unset($_SESSION['search_error']);
+unset($_SESSION['search_histogram']);
 ?>
 
 <div class="container mt-5">
@@ -19,12 +21,47 @@ unset($_SESSION['search_error']);
     </h1>
     
     <div class="row justify-content-center">
-        <div class="col-md-10">
+        <div class="col-md-12">
             <?php if ($error_message): ?>
                 <!-- Показываем ошибку если есть -->
                 <div class="alert alert-danger">
                     <h5><i class="bi bi-exclamation-triangle"></i> Ошибка</h5>
                     <p class="mb-0"><?php echo $error_message; ?></p>
+                </div>
+            <?php endif; ?>
+            
+            <?php if ($search_type === 'photo' && !empty($results)): ?>
+                <!-- Блок с информацией о методе поиска -->
+                <div class="card border-info mb-4">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0">
+                            <i class="bi bi-graph-up"></i> Метод биометрического поиска
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-lg-8">
+                                <h6 class="mb-3">Как работает сравнение:</h6>
+                                <ul class="mb-4">
+                                    <li><strong>Анализ цветов:</strong> Система анализирует распределение цветов на фотографиях</li>
+                                    <li><strong>Гистограмма:</strong> Каждое изображение преобразуется в 512-мерную цветовую гистограмму</li>
+                                    <li><strong>Сравнение:</strong> Схожесть вычисляется на основе пересечения гистограмм</li>
+                                    <li><strong>Результат:</strong> Чем больше столбцы похожи по высоте, тем выше совпадение</li>
+                                </ul>
+                                
+                                <?php echo HistogramGenerator::generateColorLegend(); ?>
+                            </div>
+                            <div class="col-lg-4">
+                                <?php if ($search_histogram): ?>
+                                    <!-- Показываем гистограмму загруженного фото -->
+                                    <?php echo HistogramGenerator::generateHistogramHTML(
+                                        $search_histogram, 
+                                        'Ваше фото'
+                                    ); ?>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             <?php endif; ?>
             
@@ -67,7 +104,7 @@ unset($_SESSION['search_error']);
                                     <div class="col-md-4 text-center">
                                         <?php if (!empty($match['photo_path'])): ?>
                                             <img src="<?php echo $base_url . $match['photo_path']; ?>" 
-                                                 class="img-fluid rounded shadow" 
+                                                 class="img-fluid rounded shadow mb-3" 
                                                  style="max-height: 200px;">
                                         <?php else: ?>
                                             <div class="text-muted p-3 border rounded">
@@ -111,6 +148,25 @@ unset($_SESSION['search_error']);
                                         </div>
                                     </div> 
                                 </div>
+                                
+                                <!-- Блок сравнения гистограмм -->
+                                <?php if (isset($search_histogram) && isset($match['stored_histogram'])): ?>
+                                    <hr class="my-4">
+                                    <div class="row align-items-center mb-3">
+                                        <div class="col-md-12">
+                                            <h6 class="mb-0">
+                                                <i class="bi bi-bar-chart"></i> Сравнение гистограмм
+                                            </h6>
+                                        </div>
+                                    </div>
+                                    <?php echo HistogramGenerator::generateComparisonHTML(
+                                        $search_histogram,
+                                        $match['stored_histogram'],
+                                        $match['similarity'] ?? 'N/A',
+                                        'Ваше фото',
+                                        htmlspecialchars($match['name'] ?? '')
+                                    ); ?>
+                                <?php endif; ?>
                             </div>
                             <!-- Важная информация -->
                             <div class="alert alert-warning">
@@ -122,14 +178,14 @@ unset($_SESSION['search_error']);
                             </div>
                         </div>
                     <?php endforeach; ?>
-                <div class="card-footer text-center">
-                    <a href="<?php echo $base_url; ?>?page=search" class="btn btn-outline-secondary me-2">
-                        <i class="bi bi-search"></i> Новый поиск
-                    </a>
-                    <a href="<?php echo $base_url; ?>?page=home" class="btn btn-primary">
-                        <i class="bi bi-house-door"></i> На главную
-                    </a>
-                </div>    
+                    <div class="card-footer text-center">
+                        <a href="<?php echo $base_url; ?>?page=search" class="btn btn-outline-secondary me-2">
+                            <i class="bi bi-search"></i> Новый поиск
+                        </a>
+                        <a href="<?php echo $base_url; ?>?page=home" class="btn btn-primary">
+                            <i class="bi bi-house-door"></i> На главную
+                        </a>
+                    </div>    
                 <?php else: ?>
                     <!-- Результаты поиска по чипу -->
                     <?php foreach ($results as $animal): ?>
@@ -142,10 +198,15 @@ unset($_SESSION['search_error']);
                             <div class="card-body">
                                 <div class="row">
                                     <div class="col-md-4 text-center">
-                                        <?php if (!empty($animal['photo_path'])): ?>
-                                            <img src="<?php echo $base_url . $animal['photo_path']; ?>" 
-                                                 class="img-fluid rounded shadow mb-3" 
-                                                 style="max-height: 250px;">
+                                        <?php if (!empty($animal['main_photo'])): ?>
+                                            <img src="<?php echo $base_url . $animal['main_photo']; ?>" class="img-fluid rounded shadow mb-3"
+                                                style="max-height: 250px; object-fit: cover;">
+                                            <p class="small text-muted mt-1">Основное фото животного</p>
+                                        <?php elseif (!empty($animal['photo_path'])): ?>
+                                            <!-- Для обратной совместимости, если photo_path еще используется -->
+                                            <img src="<?php echo $base_url . $animal['photo_path']; ?>" class="img-fluid rounded shadow mb-3"
+                                                style="max-height: 250px; object-fit: cover;">
+                                            <p class="small text-muted mt-1">Фото животного</p>
                                         <?php else: ?>
                                             <div class="text-muted p-4 border rounded mb-3">
                                                 <i class="bi bi-image display-4"></i>
@@ -241,3 +302,102 @@ unset($_SESSION['search_error']);
         </div>
     </div>
 </div>
+
+<style>
+/* Гистограмма - базовые стили */
+.histogram-container {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 15px;
+    height: 200px;
+    display: flex;
+    flex-direction: column;
+}
+
+.histogram-title {
+    text-align: center;
+    margin-bottom: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #495057;
+    flex-shrink: 0;
+}
+
+.histogram-chart {
+    flex: 1;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
+.histogram-bars {
+    flex: 1;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    border-bottom: 1px solid #ced4da;
+    position: relative;
+    padding: 0 5px;
+}
+
+.histogram-bar {
+    width: 5.5%;
+    border-radius: 3px 3px 0 0;
+    transition: height 0.3s ease;
+    background-color: #4a6baf;
+    min-height: 2px;
+}
+
+.histogram-bar:hover {
+    opacity: 0.8;
+}
+
+.histogram-x-axis {
+    display: flex;
+    justify-content: space-between;
+    padding: 5px 10px 0 10px;
+    font-size: 11px;
+    color: #6c757d;
+    flex-shrink: 0;
+}
+
+/* Контейнер сравнения */
+.comparison-container {
+    margin-top: 10px;
+}
+
+/* Цветовая легенда */
+.color-legend {
+    margin-bottom: 20px;
+}
+
+.color-legend .color-box {
+    border: 1px solid rgba(0,0,0,0.1);
+    border-radius: 3px;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+    .histogram-container {
+        height: 180px;
+        padding: 12px;
+    }
+    
+    .histogram-title {
+        font-size: 13px;
+    }
+}
+
+@media (max-width: 576px) {
+    .histogram-container {
+        height: 160px;
+        padding: 10px;
+    }
+    
+    .histogram-x-axis {
+        font-size: 10px;
+        padding: 3px 5px 0 5px;
+    }
+}
+</style>

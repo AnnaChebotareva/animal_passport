@@ -93,18 +93,24 @@ function searchByPhoto() {
         // Получаем вектор признаков для загруженного фото
         $search_embedding = $image_processor->processImage($tmp_path);
         
+        // Сохраняем гистограмму поиска для отображения
+        $_SESSION['search_histogram'] = $search_embedding;
+        $_SESSION['search_photo_path'] = $tmp_path;
+        
         // 3. Ищем совпадения в базе данных
         $database = new Database();
         $db = $database->getConnection();
         
         // Получаем все фото из базы данных
-        $sql = "SELECT ap.id, ap.animal_id, ap.photo_path, ap.embedding_data, 
-                       a.name, a.species, a.breed, a.chip_id, a.color, a.gender,
-                       o.full_name as owner_name, o.phone as owner_phone, o.email as owner_email
-                FROM animal_photos ap
-                JOIN animals a ON ap.animal_id = a.id
-                JOIN owners o ON a.owner_id = o.id
-                WHERE a.status = 'active'";
+        // Для поиска по фото
+        $sql = "SELECT a.id as animal_id, a.name, a.species, a.breed, a.color, a.chip_id,
+                        o.full_name as owner_name, o.phone as owner_phone, o.email as owner_email,
+                        ap.photo_path, ap.embedding_data, ap.is_primary
+                FROM animals a 
+                JOIN owners o ON a.owner_id = o.id 
+                LEFT JOIN animal_photos ap ON a.id = ap.animal_id AND ap.is_primary = 1
+                WHERE a.status = 'active'
+                ORDER BY a.id, ap.is_primary DESC";
         
         $stmt = $db->prepare($sql);
         $stmt->execute();
@@ -131,13 +137,14 @@ function searchByPhoto() {
                         'species' => $photo['species'],
                         'breed' => $photo['breed'],
                         'color' => $photo['color'],
-                        'gender' => $photo['gender'],
+                        'gender' => $photo['gender'] ?? '',
                         'chip_id' => $photo['chip_id'],
                         'owner_name' => $photo['owner_name'],
                         'owner_phone' => $photo['owner_phone'],
                         'owner_email' => $photo['owner_email'],
                         'photo_path' => $photo['photo_path'],
-                        'similarity' => round($similarity * 100, 1) // в процентах
+                        'similarity' => round($similarity * 100, 1), // в процентах
+                        'stored_histogram' => $stored_embedding // Сохраняем для отображения
                     ];
                 }
             }
@@ -184,15 +191,17 @@ function searchByChip() {
         $database = new Database();
         $db = $database->getConnection();
         
+        // Получаем животное с ОСНОВНЫМ фото
         $sql = "SELECT a.*, 
                        o.full_name as owner_name, 
                        o.phone as owner_phone, 
                        o.email as owner_email,
-                       ap.photo_path
+                       ap.photo_path as main_photo
                 FROM animals a
                 JOIN owners o ON a.owner_id = o.id
                 LEFT JOIN animal_photos ap ON a.id = ap.animal_id AND ap.is_primary = 1
-                WHERE a.chip_id = :chip_id AND a.status = 'active'";
+                WHERE a.chip_id = :chip_id AND a.status = 'active'
+                LIMIT 1";
         
         $stmt = $db->prepare($sql);
         $stmt->bindParam(':chip_id', $chip_number, PDO::PARAM_STR);
